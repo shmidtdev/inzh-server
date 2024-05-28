@@ -22,7 +22,7 @@ public class User
     /// <summary>
     /// Пароль
     /// </summary>
-    [MaxLength(100)]
+    [MaxLength(64)]
     public string Password { get; set; }
     
     /// <summary>
@@ -36,6 +36,11 @@ public class User
     /// </summary>
     [MaxLength(12)]
     public string? Phone { get; set; }
+    
+    /// <summary>
+    /// Разрешена рассылка
+    /// </summary>
+    public bool IsMailAllowed { get; set; }
     
     /// <summary>
     /// Роль

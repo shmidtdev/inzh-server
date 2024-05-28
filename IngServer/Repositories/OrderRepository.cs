@@ -38,7 +38,18 @@ public class OrderRepository(ApplicationContext applicationContext, ProductMovem
 
     public async Task<Order?> GetAsync(Guid id)
     {
-        return await applicationContext.Orders.Include(x => x.ProductMovements).ThenInclude(x => x.Product).FirstOrDefaultAsync(x => x.Id == id);
+        return await applicationContext.Orders
+            .Include(x => x.ProductMovements)
+            .ThenInclude(x => x.Product)
+            .FirstOrDefaultAsync(x => x.Id == id);
+    }
+
+    public async Task<Order?> GetByUserAsync(User user)
+    {
+        return await applicationContext.Orders
+            .Include(x => x.ProductMovements)
+            .ThenInclude(x => x.Product)
+            .FirstOrDefaultAsync(x => x.User.Id == user.Id);
     }
 
     public async Task RemoveProductMovementAsync(Guid orderId, Guid productId)

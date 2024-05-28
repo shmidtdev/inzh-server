@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using IngServer.DataBase.Enums;
+using Newtonsoft.Json;
 using NpgsqlTypes;
 
 namespace IngServer.DataBase.Models;

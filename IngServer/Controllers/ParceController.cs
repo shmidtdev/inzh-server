@@ -1,9 +1,14 @@
-﻿using Cyrillic.Convert;
+﻿using System.Net.Mime;
+using Cyrillic.Convert;
 using HtmlAgilityPack;
 using IngServer.DataBase;
 using IngServer.DataBase.Enums;
 using IngServer.DataBase.Models;
+using IngServer.Repositories;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Firefox;
 
 namespace IngServer.Controllers;
 
@@ -13,10 +18,109 @@ public class ParceController
     private static readonly string _url = "https://kinlong.ru";
     
     private readonly ApplicationContext _applicationContext;
-
-    public ParceController(ApplicationContext applicationContext)
+    private readonly CategoryRepository _categoryRepository;
+    private readonly ProductRepository _productRepository;
+    private readonly CharacteristicRepository _characteristicRepository;
+    
+    public ParceController(ApplicationContext applicationContext, 
+        CategoryRepository categoryRepository, 
+        ProductRepository productRepository, 
+        CharacteristicRepository characteristicRepository)
     {
         _applicationContext = applicationContext;
+        _categoryRepository = categoryRepository;
+        _productRepository = productRepository;
+        _characteristicRepository = characteristicRepository;
+    }
+
+    [HttpGet]
+    public async Task Characteristics()
+    {
+        var smt =  _applicationContext.CategoryInfos.Include(x => x.Characteristics)
+            .Where(x => x.Characteristics.Count > 0).ToList();
+        
+        var categoryInfos = _applicationContext.CategoryInfos.Include(c => c.Category).ToList();
+
+        var counter = 0;
+        
+        foreach (var info in categoryInfos)
+        {
+            
+            var products = _applicationContext.Products.Where(x => x.Category == info.Category)
+                .Include(product => product.Characteristics).ToList();
+
+            info.Characteristics = products.SelectMany(x => x.Characteristics).ToList();
+            Console.WriteLine($"{info.Category.Name} | characteristics-{info.Characteristics.Count} | {counter++}");
+            
+            _applicationContext.CategoryInfos.Update(info);
+        }
+        
+        await _applicationContext.SaveChangesAsync();
+        Console.WriteLine("end");
+    }
+
+    [HttpGet]
+    public async Task CategoryInfos()
+    {
+        var smt = _applicationContext.CategoryInfos
+            .Include(x => x.Characteristics)
+            .FirstOrDefault(x => x.Category.NameEng == "Catalog");
+        
+        var categories = _applicationContext.Categories.Include(x => x.Children).ToList();
+    
+        var counter = 0;
+    
+        var ci = _applicationContext.CategoryInfos;
+        _applicationContext.CategoryInfos.RemoveRange(ci);
+        _applicationContext.SaveChanges();
+        
+        foreach (var category in categories)
+        {
+            counter++;
+            Console.WriteLine($"{category.Name} | {counter}");
+            
+            var bottomChildren = await _categoryRepository.GetBottomChildrenAsync(category);
+            var bc = bottomChildren.Select(x => new CategoryInfo
+            {
+                Id = Guid.NewGuid(),
+                Category = x
+            });
+
+            var amount = 0;
+
+            //var characteristics = _applicationContext.Characteristics.Where(x => x.Products.Any(y => y.Category.NameEng == category.NameEng)).ToList();
+            
+            foreach (var item in bottomChildren)
+            {
+                var products = _applicationContext.Products.Include(c => c.Characteristics)
+                    .Where(x => x.Category.Id == item.Id).ToList();
+
+                //var tmp = _applicationContext.Characteristics.Include(x => x.Products).Where(x => x.Products.Any(y => products.Contains(y))).ToList();
+                //var tmp = products.SelectMany(_characteristicRepository.GetCharacteristics).ToList();
+                
+                // _applicationContext.CategoryInfos.Add(new CategoryInfo
+                // {
+                //     Id = Guid.NewGuid(),
+                //     Category = item,
+                //     BottomChildren = null,
+                //     Characteristics = tmp,
+                //     AmountOfProducts = products.Count
+                // });
+
+                amount += products.Count;
+            }
+            
+            _applicationContext.CategoryInfos.Add(new CategoryInfo
+            {
+                Id = Guid.NewGuid(),
+                Category = category,
+                BottomChildren = bc.ToList(),
+                AmountOfProducts = amount
+            });
+        }
+    
+        Console.WriteLine("end");
+        _applicationContext.SaveChanges();
     }
     
     [HttpGet]
@@ -139,6 +243,62 @@ public class ParceController
             return 0;
         
         return price;
+    }
+
+    [HttpGet]
+    public async Task GetImages()
+    {
+        var counter = 1124;
+        using StreamReader stream = new StreamReader("C:\\Users\\Kirill\\source\\repos\\Inzh-Server\\Parcer\\Links.txt");
+        var links = stream.ReadToEnd().Split("\n").Skip(counter);
+
+        using IWebDriver driver = new FirefoxDriver();
+            foreach (var link in links.AsParallel())
+            {
+                counter++;
+                Console.WriteLine(counter + link);
+                await LoadImage(link, driver);
+            }
+    }
+
+    private async Task LoadImage(string link, IWebDriver driver)
+    {
+        var mainFolderPath = "C:\\Users\\Kirill\\Desktop\\images";
+
+        // var links = link.Split('/');
+        // var lastLink = links[links.Length - 2];
+
+        driver.Navigate().GoToUrl(_url + link);
+        var title = driver.FindElement(By.CssSelector("h1")).Text.Replace('>', '_').Replace('<', '_').Replace('*', '_');
+        
+        var teams = driver.FindElements(By.CssSelector("li.slick-slide.slick-active > a > img"));
+
+        if (teams is null)
+            return;
+
+        var counter = 0;
+        
+        foreach (var item in teams)
+        {
+            try
+            {
+                var text = item.GetAttribute("src");
+
+                var client = new HttpClient();
+                var bytes = await client.GetByteArrayAsync(new Uri(text));
+
+                Directory.CreateDirectory($"{mainFolderPath}/{title}");
+
+                await using var memoryStream = new MemoryStream(bytes);
+                await using var fileStream =
+                    new FileStream($"C:\\Users\\Kirill\\Desktop\\images\\{title}\\{++counter}.jpg", FileMode.Create);
+                memoryStream.WriteTo(fileStream);
+            }
+            catch
+            {
+                Console.WriteLine(title + "error");
+            }
+        }
     }
 
     private Category AddCategories(string html)

@@ -1,5 +1,4 @@
 ﻿using IngServer.DataBase.Extensions;
-using IngServer.DataBase.Models;
 using IngServer.Dtos;
 using IngServer.Repositories;
 using Microsoft.AspNetCore.Mvc;
@@ -10,29 +9,8 @@ namespace IngServer.Controllers;
 public class CatalogController(
     CategoryRepository categoryRepository,
     ProductRepository productRepository,
-    CharacteristicRepository characteristicRepository,
     BreadCrumbManager breadCrumbManager)
 {
-    // [HttpGet]
-    // public async Task<CategoryDto> GetSingleCategoryInfo([FromQuery] string categoryName)
-    // {
-    //     var category = await categoryRepository.GetCategoryAsync(categoryName);
-    //     if (category is null)
-    //         return new CategoryDto();
-    //
-    //     var children = await categoryRepository.GetBottomChildrenAsync(category);
-    //
-    //     var amount = 0;
-    //     foreach (var child in children)
-    //         amount += await productRepository.GetAmountAsync(child);
-    //     
-    //     return new CategoryDto
-    //     {
-    //         Category = category.WithoutChildren(),
-    //         Amount = amount
-    //     };
-    // }
-
     [HttpGet]
     public async Task<List<CategoryDto>?> GetCategoryChildrenInfo([FromQuery] string categoryName)
     {
@@ -41,15 +19,13 @@ public class CatalogController(
         var category = await categoryRepository.GetCategoryAsync(categoryName);
         if (category is null)
             return null;
-
+        
         if (category.Children is null)
             return null;
         
         foreach (var child in category.Children)
         {
-            var subChildren = await categoryRepository.GetBottomChildrenAsync(child);
-            
-            var amount = subChildren.Sum(productRepository.GetAmount);
+            var categoryInfo = await categoryRepository.GetCategoryInfo(child);
             
             children.Add(new CategoryDto
             {
@@ -57,7 +33,7 @@ public class CatalogController(
                 Name = child.Name,
                 NameEng = child.NameEng,
                 ImageLink = child.Image?.Link,
-                Amount = amount
+                Amount = categoryInfo?.AmountOfProducts ?? 0
             });
         }
 
@@ -78,23 +54,25 @@ public class CatalogController(
 
         var topChildrenCategories = category.Children;
         var bottomChildrenCategories = await categoryRepository.GetBottomChildrenAsync(category);
-        
-        var products = new List<Product>();
-        foreach (var child in bottomChildrenCategories)
-            products.AddRange(await productRepository.GetProductsAsync(child.NameEng));
 
-        var characteristics = products.SelectMany(characteristicRepository.GetCharacteristics).Distinct().ToList();
+        //var products = bottomChildrenCategories.SelectMany(x => productRepository.GetProducts(x.NameEng, dto));
 
-        var pages = (products.Count / productsAmountOnPage) + 1;
+        var products = productRepository.GetProducts(bottomChildrenCategories.Select(x => x.NameEng).ToList(), dto).ToList();
+
+        var categoryInfo = await categoryRepository.GetCategoryInfo(category);
+
+        var pages = (categoryInfo.AmountOfProducts / productsAmountOnPage) + 1;
 
         var maxPrice = products.OrderBy(x => x.Price).Last().Price;
 
+        var characteristics = products.SelectMany(x => x.Characteristics).Select(x => x.WithoutProducts()).ToList();
+        
         var breadCrumbs = await breadCrumbManager.GetBreadCrumbs(dto.CategoryName);
         
         return new CatalogPageContextDto
         {
             Characteristics = characteristics,
-            Products = products.OrderBy(x => x.TitleEng).Skip((currentPage - 1) * productsAmountOnPage).Take(productsAmountOnPage).ToList(),
+            Products = products.Select(x => x.WithoutCharacteristics()).OrderBy(x => x.TitleEng).Skip((currentPage - 1) * productsAmountOnPage).Take(productsAmountOnPage).ToList(),
             Categories = topChildrenCategories ?? [],
             CurrentCategory = category,
             BreadCrumbs = breadCrumbs,

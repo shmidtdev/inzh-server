@@ -7,9 +7,19 @@ namespace IngServer.Repositories;
 
 public class UserRepository(ApplicationContext applicationContext)
 {
-    public async Task<User?> GetById(Guid id)
+    public Task<User?> GetById(Guid id)
     {
-        return await applicationContext.Users.FirstOrDefaultAsync(x => x.Id == id);
+        return applicationContext.Users.FirstOrDefaultAsync(x => x.Id == id);
+    }
+
+    public Task<User?> GetByEmailAsync(string email)
+    {
+        return applicationContext.Users.FirstOrDefaultAsync(x => x.Email.ToLower() == email.ToLower());
+    }
+
+    public async Task CreateUserAsync(User user)
+    {
+        await applicationContext.Users.AddAsync(user);
     }
 
     // public async Task<User> Create()

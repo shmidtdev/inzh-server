@@ -26,15 +26,15 @@ public class ProductController(
         var products = new List<Product>();
         
         foreach (var category in categories)
-            products.AddRange(await productRepository.GetProductsAsync(category.NameEng));
+            products.AddRange(productRepository.GetProducts(category.NameEng));
 
         return products;
     }
 
     [HttpGet]
-    public List<Product> GetProductsBySubstring(string substring)
+    public List<Product> GetProductsBySubstring(string substring, int page = 1)
     {
-        return productRepository.GetBySubstring(substring);
+        return productRepository.GetBySubstring(substring, page);
     }
 
     [HttpGet]
@@ -54,5 +54,17 @@ public class ProductController(
             Product = product,
             BreadCrumbs = breadCrumbs
         };
+    }
+
+    [HttpGet]
+    public async Task<List<Product>> GetRecommended()
+    {
+        return await productRepository.GetRecommendedProductsAsync();
+    }
+    
+    [HttpGet]
+    public async Task<List<Product>> GetActions()
+    {
+        return await productRepository.GetActionProductsAsync(15);
     }
 }

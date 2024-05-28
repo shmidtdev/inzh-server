@@ -28,25 +28,41 @@ public class CategoryRepository(ApplicationContext applicationContext)
             .FirstOrDefaultAsync(x => x.NameEng.ToLower() == nameEng.ToLower());
         if (category is null)
             return null;
-
+    
         return await GetBottomChildrenAsync(category);
     }
     
-    public async Task<List<Category>> GetBottomChildrenAsync(Category category)
+    // public async Task<List<Category>> GetBottomChildrenAsync(Category category)
+    // {
+    //     var dbCategory = await GetCategoryAsync(category.NameEng);
+    //     
+    //     var children = new List<Category>();
+    //
+    //     if (dbCategory?.Children is null || dbCategory.Children?.Count == 0)
+    //     {
+    //         children.Add(category);
+    //         return children;
+    //     }
+    //     
+    //     foreach (var child in dbCategory.Children)
+    //         children.AddRange(await GetBottomChildrenAsync(child));
+    //
+    //     return children;
+    // }
+    
+    public Task<List<Category>> GetBottomChildrenAsync(Category category)
     {
-        var dbCategory = await GetCategoryAsync(category.NameEng);
-        
-        var children = new List<Category>();
-
-        if (dbCategory?.Children is null || dbCategory.Children?.Count == 0)
-        {
-            children.Add(category);
-            return children;
-        }
-        
-        foreach (var child in dbCategory.Children)
-            children.AddRange(await GetBottomChildrenAsync(child));
-
-        return children;
+        return applicationContext.CategoryInfos
+            .Include(x => x.Category)
+            .Include(x => x.BottomChildren)
+            .Where(x => x.Category.Id == category.Id)
+            .SelectMany(x => x.BottomChildren)
+            .Select(x => x.Category)
+            .ToListAsync();
+    }
+    
+    public Task<CategoryInfo?> GetCategoryInfo(Category category)
+    {
+        return applicationContext.CategoryInfos.Include(x => x.Characteristics).FirstOrDefaultAsync(x => x.Category.Id == category.Id);
     }
 }

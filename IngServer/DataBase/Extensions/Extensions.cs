@@ -28,4 +28,43 @@ public static class Extensions
             Products = null
         };
     }
+    
+    public static Product WithoutCharacteristics(this Product product)
+    {
+        return new Product
+        {
+            Id = product.Id,
+            Title = product.Title,
+            TitleEng = product.TitleEng,
+            Category = product.Category,
+            OldPrice = product.OldPrice,
+            Price = product.Price,
+            Images = product.Images,
+            Rating = product.Rating,
+            ProductAvailability = product.ProductAvailability,
+            IsRecommended = product.IsRecommended,
+            Characteristics = new List<Characteristic>(),
+            SearchVector = product.SearchVector,
+            Orders = product.Orders,
+            WishLists = product.WishLists
+        };
+    }
+
+    // public static ProductDto ToDto(this Product product)
+    // {
+    //     return new ProductDto
+    //     {
+    //         Id = product.Id,
+    //         Title = product.Title,
+    //         TitleEng = product.TitleEng,
+    //         Category = product.Category,
+    //         OldPrice = product.OldPrice,
+    //         Price = product.Price,
+    //         Images = product.Images,
+    //         Rating = product.Rating,
+    //         ProductAvailability = product.ProductAvailability,
+    //         IsRecommended = product.IsRecommended,
+    //         Characteristics = product.Characteristics,
+    //     };
+    // }
 }
