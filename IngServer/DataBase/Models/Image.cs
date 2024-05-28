@@ -19,4 +19,6 @@ public class Image
     /// Дата загрузки
     /// </summary>
     public DateTime UploadDate { get; set; }
+    
+    public Guid ProductId { get; set; }
 }

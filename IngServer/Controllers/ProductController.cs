@@ -1,5 +1,10 @@
-﻿using IngServer.DataBase.Models;
+﻿using System.Net.Mime;
+using System.Text;
+using System.Text.RegularExpressions;
+using IngServer.DataBase;
+using IngServer.DataBase.Models;
 using IngServer.Dtos;
+using IngServer.Dtos.Products;
 using IngServer.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Minio;
@@ -9,6 +14,7 @@ namespace IngServer.Controllers;
 
 [Route("api/product/[action]")]
 public class ProductController(
+    ApplicationContext applicationContext,
     ProductRepository productRepository,
     CategoryRepository categoryRepository,
     CharacteristicRepository characteristicRepository,
@@ -66,5 +72,60 @@ public class ProductController(
     public async Task<List<Product>> GetActions()
     {
         return await productRepository.GetActionProductsAsync(15);
+    }
+
+    [HttpPost]
+    public async Task<bool> AttachImages([FromBody] AttachImageDto? dto)
+    {
+        var bucketName = "productimages";
+        var imageName = "image.png";
+
+        if (dto is null)
+            return false;
+        
+        var product = await productRepository.GetProductAsync(dto.ProductId);
+        if (product is null)
+            return false;
+        
+        var images = new List<Image>();
+        
+        foreach (var image in dto.Images)
+        {
+            var guid = Guid.NewGuid();
+        
+            Regex regex = new Regex(@"^[\w/\:.-]+;base64,");
+            
+            var base64File = regex.Replace(image,string.Empty);
+            var bytes = Convert.FromBase64String(base64File);
+            
+            using var fileStream = new MemoryStream(bytes);
+            var poa = new PutObjectArgs()
+                .WithBucket(bucketName)
+                .WithObject($"{guid}.jpg")
+                .WithStreamData(fileStream)
+                .WithObjectSize(fileStream.Length)
+                .WithContentType(MediaTypeNames.Application.Octet);
+            
+            await minioClient.PutObjectAsync(poa);
+
+            var imageObject = new Image
+            {
+                Id = guid,
+                Link = $"{bucketName}/{guid}.jpg",
+                UploadDate = DateTime.UtcNow,
+                ProductId = product.Id
+            };
+
+            applicationContext.Images.Add(imageObject);
+        }
+
+        if (product.Images is null)
+            product.Images = images;
+        else 
+            product.Images.AddRange(images);
+        
+        await applicationContext.SaveChangesAsync();
+        
+        return true;
     }
 }

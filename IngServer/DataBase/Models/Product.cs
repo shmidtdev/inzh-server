@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using IngServer.DataBase.Enums;
-using Newtonsoft.Json;
 using NpgsqlTypes;
 
 namespace IngServer.DataBase.Models;
@@ -71,8 +71,12 @@ public class Product
     /// <summary>
     /// Вектор полнотекстового поиска
     /// </summary>
+    [JsonIgnore]
     public NpgsqlTsVector SearchVector { get; set; }
     
+    [JsonIgnore]
     public List<Order> Orders { get; set; }
+    
+    [JsonIgnore]
     public List<WishList> WishLists { get; set; }
 }

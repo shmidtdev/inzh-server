@@ -26,7 +26,7 @@ public class UserController(
             Email = user.Email,
             IsAuthorized = true,
             Phone = user?.Phone ?? string.Empty,
-            UserRole = user.UserRole
+            UserRole = (int)user?.UserRole!
         };
     }
 }

@@ -177,22 +177,29 @@ public class OrderController(
     }
 
     [HttpPost]
-    public async Task<bool> CommitOrder([FromBody] CommitOrderDto dto)
+    public async Task<bool> CommitOrder([FromBody] OrderCommitDto dto)
     {
         var message = new StringBuilder();
 
-        if (dto.OrderContextItems is null)
+        if (dto.OrderCommitItems is null)
             return false;
         
-        foreach (var contextItem in dto.OrderContextItems)
+        foreach (var contextItem in dto.OrderCommitItems)
         {
-            message.Append($"{contextItem.ProductMovement.Product} x {contextItem.AmountOfElements} \n");
+            var product = await productRepository.GetProductAsync(contextItem.Id);
+            if (product is null)
+            {
+                message.Append("Товар не найден...");
+                continue;
+            }
+            
+            message.Append($"<div>{product.Title} x {contextItem.AmountOfElements}</div>");
         }
         
         var mailExecutor = new MailExecutor();
-        var result = await mailExecutor.SendAsync(message.ToString());
-
-        return result;
+        var isSent = await mailExecutor.SendAsync(message.ToString());
+            
+        return isSent;
     }
     
     private OrderContextDto? GetOrderContextDto(Order order)

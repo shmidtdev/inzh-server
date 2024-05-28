@@ -18,6 +18,7 @@ services.AddMinio(configureClient =>
 {
     configureClient.WithEndpoint("194.67.105.245:9000");
     configureClient.WithCredentials("8FX1wXOWmvwIoExsIsUs", "gLL9GtEu6zHVjMeKrtRi8UDpRmjUFMurn7jD94xp");
+    configureClient.WithSSL(false);
 });
 
 services.AddScoped<CategoryRepository>();

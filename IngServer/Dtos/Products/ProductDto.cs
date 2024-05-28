@@ -11,7 +11,7 @@ public class ProductDto
     
     public required string TitleEng { get; set; }
 
-    public required Category Category { get; set; }
+    public Category? Category { get; set; }
 
     public double OldPrice { get; set; }
 

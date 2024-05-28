@@ -84,12 +84,13 @@ public class ProductRepository(ApplicationContext applicationContext, Characteri
     {
         return applicationContext.Products
             .Include(x => x.Category)
+            .Include(x => x.Images)
             .FirstOrDefaultAsync(x => x.Id == id);
     }
     
     public List<Product> GetBySubstring(string substring, int page = 1)
     {
-        var products = applicationContext.Products.Where(x => x.SearchVector.Matches(substring)).Skip(page - 1).Take(25).ToList();
+        var products = applicationContext.Products.Include(x => x.Images).Where(x => x.SearchVector.Matches(substring)).Skip(page - 1).Take(25).ToList();
 
         var smt = products.Select(x => new Product
         {
@@ -113,16 +114,16 @@ public class ProductRepository(ApplicationContext applicationContext, Characteri
 
     public Task<List<Product>> GetRecommendedProductsAsync()
     {
-        return applicationContext.Products.Where(x => x.IsRecommended).Take(15).ToListAsync();
+        return applicationContext.Products.Include(x => x.Images).Where(x => x.IsRecommended).Take(15).ToListAsync();
     }
 
     public Task<List<Product>> GetActionProductsAsync()
     {
-        return applicationContext.Products.Where(x => x.OldPrice > 0).ToListAsync();
+        return applicationContext.Products.Include(x => x.Images).Where(x => x.OldPrice > 0).ToListAsync();
     }
     
     public Task<List<Product>> GetActionProductsAsync(int amount)
     {
-        return applicationContext.Products.Where(x => x.OldPrice > 0).Take(amount).ToListAsync();
+        return applicationContext.Products.Include(x => x.Images).Where(x => x.OldPrice > 0).Take(amount).ToListAsync();
     }
 }
