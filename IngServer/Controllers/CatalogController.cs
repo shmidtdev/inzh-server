@@ -55,8 +55,6 @@ public class CatalogController(
         var topChildrenCategories = category.Children;
         var bottomChildrenCategories = await categoryRepository.GetBottomChildrenAsync(category);
 
-        //var products = bottomChildrenCategories.SelectMany(x => productRepository.GetProducts(x.NameEng, dto));
-
         var products = productRepository.GetProducts(bottomChildrenCategories.Select(x => x.NameEng).ToList(), dto).ToList();
 
         var categoryInfo = await categoryRepository.GetCategoryInfo(category);
@@ -78,6 +76,29 @@ public class CatalogController(
             BreadCrumbs = breadCrumbs,
             Pages = pages,
             MaxPrice = maxPrice
+        };
+    }
+
+    [HttpPost]
+    public async Task<CatalogPageContextDto> GetActions([FromBody]CatalogPostDto dto)
+    {
+        const int productsAmountOnPage = 24;
+
+        var currentPage = 1;
+        if (dto.Page > 1)
+            currentPage = dto.Page;
+
+        var products = await productRepository.GetActionProductsAsync();
+
+        var pages = (products.Count / productsAmountOnPage) + 1;
+
+        var characteristics = products.SelectMany(x => x.Characteristics).Select(x => x.WithoutProducts()).ToList();
+        
+        return new CatalogPageContextDto
+        {
+            Characteristics = characteristics,
+            Products = products.Select(x => x.WithoutCharacteristics()).OrderBy(x => x.TitleEng).Skip((currentPage - 1) * productsAmountOnPage).Take(productsAmountOnPage).ToList(),
+            Pages = pages,
         };
     }
 }

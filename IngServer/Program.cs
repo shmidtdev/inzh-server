@@ -28,6 +28,7 @@ services.AddScoped<OrderRepository>();
 services.AddScoped<ProductMovementRepository>();
 services.AddScoped<WishListRepository>();
 services.AddScoped<UserRepository>();
+services.AddScoped<SubscriberRepository>();
 
 services.AddScoped<BreadCrumbManager>();
 services.AddScoped<Encrypter>();

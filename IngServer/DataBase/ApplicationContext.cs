@@ -12,6 +12,7 @@ public sealed class ApplicationContext : DbContext
     public DbSet<Order> Orders { get; init; } = null!;
     public DbSet<WishList> WishLists { get; init; } = null!;
     public DbSet<User> Users { get; init; } = null!;
+    public DbSet<Subscriber> Subscribers { get; init; } = null!;
     public DbSet<Article> Articles { get; init; } = null!;
     public DbSet<ProductMovement> ProductMovements { get; init; } = null!;
     public DbSet<CategoryInfo> CategoryInfos { get; init; } = null!;

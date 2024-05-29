@@ -88,33 +88,14 @@ public class ProductRepository(ApplicationContext applicationContext, Characteri
             .FirstOrDefaultAsync(x => x.Id == id);
     }
     
-    public List<Product> GetBySubstring(string substring, int page = 1)
+    public IQueryable<Product> GetBySubstring(string substring)
     {
-        var products = applicationContext.Products.Include(x => x.Images).Where(x => x.SearchVector.Matches(substring)).Skip(page - 1).Take(25).ToList();
-
-        var smt = products.Select(x => new Product
-        {
-            Id = x.Id,
-            Title = x.Title,
-            TitleEng = x.TitleEng,
-            Category = x.Category,
-            OldPrice = x.OldPrice,
-            Price = x.Price,
-            Images = x.Images,
-            Rating = x.Rating,
-            ProductAvailability = x.ProductAvailability,
-            IsRecommended = x.IsRecommended,
-            Characteristics = characteristicRepository.GetCharacteristics(x).ToList(),
-            SearchVector = x.SearchVector,
-            Orders = x.Orders
-        });
-        
-        return smt.ToList();
+        return applicationContext.Products.Include(x => x.Images).Where(x => x.SearchVector.Matches(substring));
     }
 
-    public Task<List<Product>> GetRecommendedProductsAsync()
+    public Task<List<Product>> GetRecommendedProductsAsync(int amount)
     {
-        return applicationContext.Products.Include(x => x.Images).Where(x => x.IsRecommended).Take(15).ToListAsync();
+        return applicationContext.Products.Include(x => x.Images).Where(x => x.IsRecommended).Take(amount).ToListAsync();
     }
 
     public Task<List<Product>> GetActionProductsAsync()

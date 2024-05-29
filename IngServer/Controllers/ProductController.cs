@@ -1,5 +1,4 @@
 ﻿using System.Net.Mime;
-using System.Text;
 using System.Text.RegularExpressions;
 using IngServer.DataBase;
 using IngServer.DataBase.Models;
@@ -38,9 +37,15 @@ public class ProductController(
     }
 
     [HttpGet]
-    public List<Product> GetProductsBySubstring(string substring, int page = 1)
+    public CatalogPageContextDto GetProductsBySubstring(string substring, int page = 1)
     {
-        return productRepository.GetBySubstring(substring, page);
+        var products = productRepository.GetBySubstring(substring);
+
+        return new CatalogPageContextDto
+        {
+            Products = products.Skip(page).Take(25).ToList(),
+            Pages = (products.Count() / 25) - 1,
+        };
     }
 
     [HttpGet]
@@ -65,7 +70,7 @@ public class ProductController(
     [HttpGet]
     public async Task<List<Product>> GetRecommended()
     {
-        return await productRepository.GetRecommendedProductsAsync();
+        return await productRepository.GetRecommendedProductsAsync(15);
     }
     
     [HttpGet]

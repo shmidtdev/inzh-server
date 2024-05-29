@@ -62,6 +62,11 @@ public class AuthController(
         if (user is null)
             return false;
         
+        var encryptedPassword = encrypter.Encrypt(dto.Password);
+
+        if (encryptedPassword != user.Password)
+            return false;
+        
         var claims = new List<Claim>
         {
             new (ClaimsIdentity.DefaultNameClaimType, user.Email)
