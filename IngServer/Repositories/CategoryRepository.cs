@@ -21,7 +21,7 @@ public class CategoryRepository(ApplicationContext applicationContext)
             .FirstOrDefaultAsync(x => x.NameEng.ToLower() == nameEng.ToLower());
     }
 
-    public async Task<List<Category>?> GetBottomChildrenAsync(string nameEng)
+    public async Task<IQueryable<Category>?> GetBottomChildrenAsync(string nameEng)
     {
         var category = await applicationContext.Categories
             .Include(x => x.Children)
@@ -29,7 +29,7 @@ public class CategoryRepository(ApplicationContext applicationContext)
         if (category is null)
             return null;
     
-        return await GetBottomChildrenAsync(category);
+        return GetBottomChildrenAsync(category);
     }
     
     // public async Task<List<Category>> GetBottomChildrenAsync(Category category)
@@ -50,15 +50,14 @@ public class CategoryRepository(ApplicationContext applicationContext)
     //     return children;
     // }
     
-    public Task<List<Category>> GetBottomChildrenAsync(Category category)
+    public IQueryable<Category> GetBottomChildrenAsync(Category category)
     {
         return applicationContext.CategoryInfos
             .Include(x => x.Category)
             .Include(x => x.BottomChildren)
             .Where(x => x.Category.Id == category.Id)
             .SelectMany(x => x.BottomChildren)
-            .Select(x => x.Category)
-            .ToListAsync();
+            .Select(x => x.Category);
     }
     
     public Task<CategoryInfo?> GetCategoryInfo(Category category)

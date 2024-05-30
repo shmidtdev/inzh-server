@@ -148,8 +148,6 @@ public class WishListController(
                 return null;
 
             await wishListRepository.RemoveProductMovementAsync(wishList.Id, dto.ProductId);
-
-            await applicationContext.SaveChangesAsync();
         }
         else
         {
@@ -165,6 +163,8 @@ public class WishListController(
             
             await wishListRepository.RemoveProductMovementAsync(wishList.Id, dto.ProductId);
         }
+        
+        await applicationContext.SaveChangesAsync();
 
         return wishList;
     }

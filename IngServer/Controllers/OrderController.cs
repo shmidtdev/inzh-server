@@ -184,6 +184,13 @@ public class OrderController(
         if (dto.OrderCommitItems is null)
             return false;
         
+        if (!string.IsNullOrEmpty(dto.Email))
+            message.Append($"<div>{dto.Email}</div>");
+        if (!string.IsNullOrEmpty(dto.Name))
+            message.Append($"<div>{dto.Name}</div>");
+        if (!string.IsNullOrEmpty(dto.Phone))
+            message.Append($"<div>{dto.Phone}</div>");
+        
         foreach (var contextItem in dto.OrderCommitItems)
         {
             var product = await productRepository.GetProductAsync(contextItem.Id);

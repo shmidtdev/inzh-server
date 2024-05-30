@@ -10,11 +10,14 @@ public class CatalogPostDto
     [JsonPropertyName("params")]
     public Dictionary<string, string> Params { get; set; }
     
-    [JsonPropertyName("priceMin")]
-    public int PriceMin { get; set; }
+    [JsonPropertyName("maxPrice")]
+    public int MaxPrice { get; set; }
     
-    [JsonPropertyName("priceMax")]
-    public int PriceMax { get; set; }
+    [JsonPropertyName("minPrice")]
+    public int MinPrice { get; set; }
+    
+    [JsonPropertyName("order")]
+    public int Order { get; set; }
     
     [JsonPropertyName("page")]
     public int Page { get; set; }

@@ -1,4 +1,6 @@
-﻿using IngServer.DataBase.Extensions;
+﻿using System.IO.Hashing;
+using IngServer.DataBase.Extensions;
+using IngServer.DataBase.Models;
 using IngServer.Dtos;
 using IngServer.Repositories;
 using Microsoft.AspNetCore.Mvc;
@@ -53,24 +55,32 @@ public class CatalogController(
         var category = await categoryRepository.GetCategoryAsync(dto.CategoryName);
 
         var topChildrenCategories = category.Children;
-        var bottomChildrenCategories = await categoryRepository.GetBottomChildrenAsync(category);
+        var bottomChildrenCategories = categoryRepository.GetBottomChildrenAsync(category);
 
-        var products = productRepository.GetProducts(bottomChildrenCategories.Select(x => x.NameEng).ToList(), dto).ToList();
+        var characteristics = productRepository.GetProducts(bottomChildrenCategories.Select(x => x.NameEng).ToList())
+            .SelectMany(x => x.Characteristics)
+            .OrderBy(x => x.ValueEng)
+            .AsEnumerable()
+            .DistinctBy(x => new { x.NameEng, x.ValueEng })
+            .Select(x => x.WithoutProducts())
+            .ToList();
+        
+        var products = productRepository
+            .GetProducts(bottomChildrenCategories.Select(x => x.NameEng).ToList(), dto)
+            .ToList();
 
         var categoryInfo = await categoryRepository.GetCategoryInfo(category);
 
-        var pages = (categoryInfo.AmountOfProducts / productsAmountOnPage) + 1;
+        var pages = (products.Count / productsAmountOnPage) + 1;
 
-        var maxPrice = products.OrderBy(x => x.Price).Last().Price;
-
-        var characteristics = products.SelectMany(x => x.Characteristics).Select(x => x.WithoutProducts()).ToList();
+        var maxPrice = products?.OrderBy(x => x.Price)?.Last()?.Price ?? 0;
         
         var breadCrumbs = await breadCrumbManager.GetBreadCrumbs(dto.CategoryName);
         
         return new CatalogPageContextDto
         {
             Characteristics = characteristics,
-            Products = products.Select(x => x.WithoutCharacteristics()).OrderBy(x => x.TitleEng).Skip((currentPage - 1) * productsAmountOnPage).Take(productsAmountOnPage).ToList(),
+            Products = products?.Select(x => x.WithoutCharacteristics()).OrderBy(x => x.TitleEng).Skip((currentPage - 1) * productsAmountOnPage).Take(productsAmountOnPage).ToList() ?? new List<Product>(),
             Categories = topChildrenCategories ?? [],
             CurrentCategory = category,
             BreadCrumbs = breadCrumbs,

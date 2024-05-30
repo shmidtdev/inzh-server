@@ -29,7 +29,15 @@ public class ProductRepository(ApplicationContext applicationContext, Characteri
     public IQueryable<Product> GetProducts(string categoryName)
     {
         return applicationContext.Products.Include(x => x.Category)
+            .Include(x => x.Characteristics)
             .Where(x => x.Category.NameEng == categoryName);
+    }    
+    
+    public IQueryable<Product> GetProducts(List<string> categoryNames)
+    {
+        return applicationContext.Products
+            .Include(x => x.Characteristics)
+            .Where(x => categoryNames.Select(x => x.ToLower()).Contains(x.Category.NameEng.ToLower()));
     }
 
     public IEnumerable<Product> GetProducts(string categoryName, CatalogPostDto dto)
@@ -38,20 +46,20 @@ public class ProductRepository(ApplicationContext applicationContext, Characteri
             .GetCharacteristics(x => dto.Params.ContainsKey(x.NameEng) 
                                      && dto.Params.ContainsValue(x.ValueEng));
         
-        var max = dto.PriceMax > 0 ? dto.PriceMax : int.MaxValue;
+        var max = dto.MinPrice > 0 ? dto.MinPrice : int.MaxValue;
 
         if (parameters.Count > 0)
         {
             return applicationContext.Products
                 .Where(x => x.Category.NameEng.ToLower() == categoryName.ToLower())
-                .Where(x => x.Price >= dto.PriceMin)
+                .Where(x => x.Price >= dto.MaxPrice)
                 .Where(x => x.Price <= max)
                 .Where(x => x.Characteristics.Any(y => parameters.Contains(y)));
         }
 
         return applicationContext.Products
             .Where(x => x.Category.NameEng.ToLower() == categoryName.ToLower())
-            .Where(x => x.Price >= dto.PriceMin)
+            .Where(x => x.Price >= dto.MaxPrice)
             .Where(x => x.Price <= max);
     }
     
@@ -61,23 +69,29 @@ public class ProductRepository(ApplicationContext applicationContext, Characteri
             .GetCharacteristics(x => dto.Params.ContainsKey(x.NameEng) 
                                      && dto.Params.ContainsValue(x.ValueEng));
         
-        var max = dto.PriceMax > 0 ? dto.PriceMax : int.MaxValue;
+        var min = dto.MinPrice > 0 ? dto.MinPrice : int.MaxValue;
 
         if (parameters.Count > 0)
         {
+            var smt = applicationContext.Products
+                .Include(x => x.Characteristics)
+                .Where(x => x.Price <= dto.MaxPrice)
+                .Where(x => x.Price >= min)
+                .Where(x => x.Characteristics.Any(y => parameters.Contains(y))).ToList();
+            
             return applicationContext.Products
                 .Include(x => x.Characteristics)
                 .Where(x => categoryNames.Select(x => x.ToLower()).Contains(x.Category.NameEng.ToLower()))
-                .Where(x => x.Price >= dto.PriceMin)
-                .Where(x => x.Price <= max)
+                .Where(x => x.Price <= dto.MaxPrice)
+                .Where(x => x.Price >= min)
                 .Where(x => x.Characteristics.Any(y => parameters.Contains(y)));
         }
 
         return applicationContext.Products
             .Include(x => x.Characteristics)
             .Where(x => categoryNames.Select(x => x.ToLower()).Contains(x.Category.NameEng.ToLower()))
-            .Where(x => x.Price >= dto.PriceMin)
-            .Where(x => x.Price <= max);
+            .Where(x => x.Price <= dto.MaxPrice)
+            .Where(x => x.Price >= min);
     }
 
     public Task<Product?> GetProductAsync(Guid id)
